@@ -1,1 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Lounge Status</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 90%;
+            animation: fadeIn 1s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        h1 {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-box {
+            margin: 40px 0;
+            padding: 60px 80px;
+            border-radius: 20px;
+            transition: all 0.5s ease;
+        }
+
+        .status-box.open {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            box-shadow: 0 10px 40px rgba(56, 239, 125, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        .status-box.closed {
+            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+            box-shadow: 0 10px 40px rgba(238, 9, 121, 0.4);
+        }
+
+        .status-text {
+            font-size: 6rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5);
+            margin-bottom: 30px;
+        }
+
+        .timer {
+            font-size: 5rem;
+            font-weight: 300;
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 30px 60px;
+            border-radius: 15px;
+            display: inline-block;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            min-width: 600px;
+        }
+
+        .clock {
+            position: fixed;
+            bottom: 30px;
+            right: 40px;
+            text-align: right;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .clock-time {
+            font-size: 3rem;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        .clock-date {
+            font-size: 1.5rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .subtitle {
+            font-size: 2rem;
+            opacity: 0.9;
+            margin-top: 20px;
+        }
+
+        /* Loading animation */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Student Lounge</h1>
+
+        <div id="status-box" class="status-box">
+            <div id="status-text" class="status-text">LOADING...</div>
+            <div id="timer" class="timer">--:--:--</div>
+        </div>
+
+        <div class="subtitle">Come hang out, relax, and have fun!</div>
+    </div>
+
+    <div class="clock">
+        <div id="clock-time" class="clock-time">--:--</div>
+        <div id="clock-date" class="clock-date">Loading...</div>
+    </div>
+
+    <script>
+        // --- VERSION 24 (Simplified for Lounge Display) ---
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- PART 1: WAKE LOCK (Keeps Screen On) ---
+            let wakeLock = null;
+
+            async function requestWakeLock() {
+                try {
+                    if ('wakeLock' in navigator) {
+                        wakeLock = await navigator.wakeLock.request('screen');
+                        console.log('Wake Lock active - screen will stay on');
+                    }
+                } catch (err) {
+                    console.error('Wake Lock failed:', err);
+                }
+            }
+
+            requestWakeLock();
+
+            document.addEventListener('visibilitychange', async () => {
+                if (wakeLock !== null && document.visibilityState === 'visible') {
+                    requestWakeLock();
+                }
+            });
+
+            window.addEventListener('beforeunload', async () => {
+                if (wakeLock) {
+                    await wakeLock.release();
+                    wakeLock = null;
+                }
+            });
+
+            // --- PART 2: CLOCK (Bottom Right) ---
+            function updateClock() {
+                const now = new Date();
+                const dateString = now.toLocaleDateString('sv-SE', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long'
+                });
+                const timeString = now.toLocaleTimeString('sv-SE', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                const formattedDate = dateString.charAt(0).toUpperCase() + dateString.slice(1);
+
+                document.getElementById('clock-time').textContent = timeString;
+                document.getElementById('clock-date').textContent = formattedDate;
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+
+            // --- PART 3: LOUNGE SCHEDULE ---
+            // Format: Day of week (0=Sunday, 6=Saturday) -> Array of [hour, minute] pairs
+            // Each pair: [open_hour, open_minute], [close_hour, close_minute]
+            const schedule = {
+                0: [], // Sunday - Closed
+                1: [[11,0],[13,45]], // Monday: 11:00-13:45
+                2: [[9,0],[10,30],[11,0],[13,45]], // Tuesday: 9:00-10:30, 11:00-13:45
+                3: [[9,0],[13,45]], // Wednesday: 9:00-13:45
+                4: [[9,0],[10,30],[11,0],[13,45]], // Thursday: 9:00-10:30, 11:00-13:45
+                5: [[9,0],[10,30],[11,0],[13,45]], // Friday: 9:00-10:30, 11:00-13:45
+                6: [] // Saturday - Closed
+            };
+
+            // --- PART 4: STATUS UPDATE LOGIC ---
+            function updateLoungeStatus() {
+                const now = new Date();
+                const currentDay = now.getDay();
+                const currentHours = now.getHours();
+                const currentMinutes = now.getMinutes();
+                const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+                const daySchedule = schedule[currentDay];
+
+                let isOpen = false;
+                let nextEventTime = null;
+
+                // Check if currently within any open period
+                for (let i = 0; i < daySchedule.length; i += 2) {
+                    const openTime = daySchedule[i][0] * 60 + daySchedule[i][1];
+                    const closeTime = daySchedule[i + 1][0] * 60 + daySchedule[i + 1][1];
+
+                    if (currentTimeInMinutes >= openTime && currentTimeInMinutes < closeTime) {
+                        isOpen = true;
+                        nextEventTime = new Date(now);
+                        nextEventTime.setHours(daySchedule[i + 1][0], daySchedule[i + 1][1], 0, 0);
+                        break;
+                    }
+                }
+
+                // If not open, find next opening time
+                if (!isOpen) {
+                    for (let i = 0; i < daySchedule.length; i += 2) {
+                        const openTime = daySchedule[i][0] * 60 + daySchedule[i][1];
+                        if (currentTimeInMinutes < openTime) {
+                            nextEventTime = new Date(now);
+                            nextEventTime.setHours(daySchedule[i][0], daySchedule[i][1], 0, 0);
+                            break;
+                        }
+                    }
+                }
+
+                // If no next event today, find next day's opening
+                if (nextEventTime === null) {
+                    let nextDay = (currentDay + 1) % 7;
+                    let daysToAdd = 1;
+
+                    while (schedule[nextDay].length === 0 && daysToAdd <= 7) {
+                        nextDay = (nextDay + 1) % 7;
+                        daysToAdd++;
+                    }
+
+                    if (daysToAdd <= 7 && schedule[nextDay].length > 0) {
+                        const nextOpenTime = schedule[nextDay][0];
+                        nextEventTime = new Date(now);
+                        nextEventTime.setDate(now.getDate() + daysToAdd);
+                        nextEventTime.setHours(nextOpenTime[0], nextOpenTime[1], 0, 0);
+                    }
+                }
+
+                // Update UI
+                const statusBox = document.getElementById('status-box');
+                const statusText = document.getElementById('status-text');
+                const timerElement = document.getElementById('timer');
+
+                if (isOpen) {
+                    statusText.textContent = '✅ OPEN';
+                    statusBox.className = 'status-box open';
+                    timerElement.textContent = `Closes in ${formatCountdown(nextEventTime)}`;
+                } else {
+                    statusText.textContent = '🔒 CLOSED';
+                    statusBox.className = 'status-box closed';
+                    if (nextEventTime) {
+                        timerElement.textContent = `Opens in ${formatCountdown(nextEventTime)}`;
+                    } else {
+                        timerElement.textContent = 'Closed for the weekend';
+                    }
+                }
+            }
+
+            // --- PART 5: COUNTDOWN FORMATTER ---
+            function formatCountdown(targetTime) {
+                const now = new Date();
+                const diff = targetTime.getTime() - now.getTime();
+                let seconds = Math.max(0, Math.floor(diff / 1000));
+                let minutes = Math.floor(seconds / 60);
+                let hours = Math.floor(minutes / 60);
+
+                seconds = seconds % 60;
+                minutes = minutes % 60;
+
+                if (hours > 0) {
+                    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                } else {
+                    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }
+            }
+
+            // --- INITIALIZE ---
+            updateLoungeStatus();
+            setInterval(updateLoungeStatus, 1000); // Update every second
+        });
+    </script>
+</body>
+</html>
